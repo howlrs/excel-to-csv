@@ -2,6 +2,9 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
+use base64::prelude::*;
+
+use dirs::document_dir;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use serde_json::json;
 
@@ -22,29 +25,43 @@ async fn command_run(paths: Vec<String>) -> Result<String, String> {
         std::fs::read_to_string(target_file).unwrap()
     };
 
-    let single_dir_path = paths.first().unwrap();
+    let files = {
+        let mut files = Vec::new();
+        for path in paths {
+            // ファイルであるか検証
+            let filepath = Path::new(&path).to_path_buf();
+            if filepath.is_dir() {
+                continue;
+            }
 
-    // ディレクトリであるか検証
-    let dir = Path::new(&single_dir_path);
-    if !dir.is_dir() {
-        eprintln!("Error: {} is not a directory", single_dir_path);
-        return Err("Error: not a directory".to_string());
+            // pdfファイルであることを確認する
+            if filepath.extension().unwrap() != "pdf" {
+                eprintln!("Error: {} is not a pdf file", path);
+                continue;
+            }
+
+            files.push(filepath);
+        }
+        files
+    };
+
+    // ファイルのbase64化
+    let mut content_all = String::new();
+    for file in &files {
+        // pdf file to base64
+        let content = fs::read(file).expect("Failed to read file");
+        let content_base64 = BASE64_STANDARD.encode(&content);
+        content_all.push_str(&content_base64);
     }
 
-    // ディレクトリ内を走査しファイルをリストする
-    let files = documents::scan::files(dir);
     // content length
     let content_length = files.len();
-    let content_size = files.iter().map(|s| s.len()).sum::<usize>();
+    let content_size = content_all.len();
     let content_size_mb = content_size as f64 / 1024.0 / 1024.0;
     println!(
         "Found {} files, content size: {:.3} MB",
         content_length, content_size_mb
     );
-    // ファイルのテキスト化
-    let contents_str = files
-        .iter()
-        .fold(String::new(), |acc, s| acc + format!("{}\n", s).as_str());
 
     //  モデルを取得
     let model = get_model();
@@ -53,17 +70,21 @@ async fn command_run(paths: Vec<String>) -> Result<String, String> {
     "contents":
         json!([{
             // roleがuserの場合はuser、それ以外はmodel as assistant
-            "role": "user",
             "parts": [
                 {
-                    "text": format!("{}\n{}\ncontent length: {}, content size: {:.2}MB",prompt, contents_str, content_length, content_size_mb),
+                    "inline_data": {
+                        "data": content_all,
+                        "mime_type": "application/pdf"
+                    }
+                },
+                {
+                    "text": format!("{}\npdf length: {}, content size: {:.2}MB",prompt,content_length, content_size_mb)
                 },
             ],
         }])
     });
 
     println!("Sending to server...");
-
     let result = documents::request::request(model.as_str(), body).await;
     match result {
         Ok(json) => {
@@ -75,11 +96,14 @@ async fn command_run(paths: Vec<String>) -> Result<String, String> {
                 }
             };
 
+            // ドキュメントディレクトリを取得
+            let document_dir_each_os = get_document_dir_for_each_os();
+
             // ファイルに保存
             let time_at = chrono::Local::now();
-            let docname = format!("doc-{}.md", time_at.format("%Y%m%d"));
+            let docname = format!("doc-{}.csv", time_at.format("%Y%m%d"));
             // ターゲットディレクトリ下にファイルを作成
-            let target_dir_and_filename = format!("{}/{}", dir.display(), docname);
+            let target_dir_and_filename = format!("{}/{}", document_dir_each_os.display(), docname);
             println!("Saving to {}", target_dir_and_filename);
             let path = Path::new(&target_dir_and_filename);
             let mut file = fs::File::create(path).expect("Failed to create file");
@@ -107,5 +131,13 @@ fn get_model() -> String {
     match std::env::var("GOOGLE_GEMINI_MODEL") {
         Ok(val) => val,
         Err(_) => "gemini-2.0-flash-exp".to_string(),
+    }
+}
+
+fn get_document_dir_for_each_os() -> std::path::PathBuf {
+    if let Some(document_dir) = document_dir() {
+        document_dir
+    } else {
+        std::env::current_dir().unwrap()
     }
 }

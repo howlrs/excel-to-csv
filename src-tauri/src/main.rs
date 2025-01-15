@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    gen_readme_lib::run()
+    pdf_reader_lib::run()
 }

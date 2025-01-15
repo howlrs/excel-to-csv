@@ -1,5 +1,5 @@
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { Button, Col, message, Row, Spin } from "antd";
+import { Button, Col, message, Row, Space, Spin } from "antd";
 
 import { invoke } from "@tauri-apps/api/core";
 
@@ -18,6 +18,7 @@ export const GetPaths = () => {
             const response = await invoke('command_run', { paths: filePaths });
             console.log('tauri command response:', response);
             setResult(response as string);
+            setFilePaths([]);
             message.open({
                 type: 'success',
                 content: 'コマンドの実行に成功しました',
@@ -102,23 +103,25 @@ export const GetPaths = () => {
             {
                 filePaths.length != 0 ? (
                     <>
-                        <div style={{ textAlign: 'left' }}>
-                            <p>ディレクトリパス:</p>
+                        <div style={{ textAlign: 'left', padding: '2rem' }}>
+                            <p>PDFパス:</p>
                             <ul>
                                 {filePaths.map((path, index) => (
                                     <li key={index}>
-                                        <Row gutter={[16, 16]}>
-                                            <Col span={18}>{path}</Col>
+                                        <Row gutter={[16, 16]} style={{ width: '100vw' }}>
+                                            <Col span={12}>{path}</Col>
                                             <Col span={6}>
-                                                <Button type="text" onClick={() => up(index)}>
-                                                    ↑
-                                                </Button>
-                                                <Button type="text" onClick={() => down(index)}>
-                                                    ↓
-                                                </Button>
-                                                <Button type="text" onClick={() => del(index)}>
-                                                    🗑️
-                                                </Button>
+                                                <Space>
+                                                    <Button type="text" onClick={() => up(index)}>
+                                                        ↑
+                                                    </Button>
+                                                    <Button type="text" onClick={() => down(index)}>
+                                                        ↓
+                                                    </Button>
+                                                    <Button type="text" onClick={() => del(index)}>
+                                                        🗑️
+                                                    </Button>
+                                                </Space>
                                             </Col>
                                         </Row>
 
@@ -131,7 +134,7 @@ export const GetPaths = () => {
                         </Button>
                     </>
                 ) : (
-                    <p>ディレクトリ内のファイルを走査し、ドキュメントを生成します。ウィンドウにディレクトリをドロップしてください</p>
+                    <p>PDFファイルから、CSVデータを生成します。ウィンドウにPDFファイルをドロップしてください</p>
                 )
             }
 
