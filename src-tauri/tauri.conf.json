@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "pdf-reader",
+  "productName": "excel-to-csv",
   "version": "0.1.0",
-  "identifier": "com.pdf-reader.app",
+  "identifier": "com.excel-to-csv.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "pdf-reader",
+        "title": "excel-to-csv",
         "width": 480,
         "height": 280
       }

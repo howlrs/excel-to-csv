@@ -15,7 +15,7 @@ export const GetPaths = () => {
         setIsLoading(true);
         // tauri commandからのレスポンスを明瞭なエラーハンドリングで処理
         try {
-            const response = await invoke('command_run', { paths: filePaths });
+            const response = await invoke('command_parse_excel', { paths: filePaths });
             console.log('tauri command response:', response);
             setResult(response as string);
             setFilePaths([]);
@@ -98,6 +98,16 @@ export const GetPaths = () => {
         setFilePaths((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const onSave = () => {
+        const blob = new Blob([result], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'result.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div>
             {
@@ -134,15 +144,24 @@ export const GetPaths = () => {
                         </Button>
                     </>
                 ) : (
-                    <p>PDFファイルから、CSVデータを生成します。ウィンドウにPDFファイルをドロップしてください</p>
+                    <p>Excelファイルから、CSVデータを生成します。ウィンドウにExcelファイルをドロップしてください</p>
                 )
             }
 
             <Spin spinning={isLoading}>
                 {result ? (
-                    <div>
+                    <div style={{ padding: '2rem', textAlign: 'left' }}>
                         <p>結果:</p>
-                        <p>{result}</p>
+                        <p>
+                            {
+                                result ? <Button onClick={onSave}>ファイルに保存</Button> : 'コマンドの実行に失敗しました'
+                            }
+                        </p>
+                        <p>
+                            {
+                                result
+                            }
+                        </p>
                     </div>
                 ) : null}
             </Spin>

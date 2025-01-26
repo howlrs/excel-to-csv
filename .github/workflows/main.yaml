@@ -26,10 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set environment variables
-        run: |
-          cp .env.sample .env
-
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
